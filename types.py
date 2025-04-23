@@ -1,5 +1,5 @@
 from typing import Dict, Type, Any, Set
-from pydantic import ValidationError
+from .errors import NodeValidationError
 
 class NodeInputType:
     """
@@ -61,14 +61,14 @@ class NodeInputType:
         # Vérifier les requis
         for key, typ in self.required.items():
             if key not in data:
-                raise ValidationError(f"Input requis manquant : '{key}'")
+                raise NodeValidationError(f"Missing Required input: '{key}'")
             if not isinstance(data[key], typ):
-                raise ValidationError(
-                    f"Input '{key}' expected of type {typ.__name__}, received {type(data[key]).__name__}."
+                raise NodeValidationError(
+                    f"Input '{key}' expected type {typ.__name__}, got {type(data[key]).__name__}."
                 )
         # Vérifier les optionnels fournis
         for key, value in data.items():
             if key in self.optional and not isinstance(value, self.optional[key]):
-                raise ValidationError(
-                    f"Optional Input '{key}' expected of type {self.optional[key].__name__}, received {type(value).__name__}."
+                raise NodeValidationError(
+                    f"Optional Input '{key}' expected type {self.optional[key].__name__}, got {type(value).__name__}."
                 )
