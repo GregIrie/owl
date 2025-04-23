@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 class NodeInputType:
     """
+    Define the input types (required and optionals) for a node
     Représente les types d'inputs d'un Node, séparés en requis et optionnels.
     """
     def __init__(
@@ -16,11 +17,11 @@ class NodeInputType:
         # Vérifier l'unicité des clés entre requis et optionnels
         duplicates = set(self.required) & set(self.optional)
         if duplicates:
-            raise ValueError(f"Clés dupliquées entre requis et optionnels : {duplicates}")
+            raise ValueError(f"Duplicated key between required and optional: {duplicates}")
 
     def keys(self, include_required: bool = True, include_optional: bool = True) -> Set[str]:
         """
-        Retourne l'ensemble des clés selon les catégories demandées.
+        Return all the key according the asked categories : optional or required
         """
         keys: Set[str] = set()
         if include_required:
@@ -31,31 +32,31 @@ class NodeInputType:
 
     def add_input(self, name: str, type_: Type, required: bool = True) -> None:
         """
-        Ajoute une nouvelle définition d'input.
-        Lève KeyError si déjà existant, TypeError si le type n'est pas correct.
+        Add a new input definition. 
+        Raise a KeyError if the input already exists.
+        Raise a TypeError if the type is not correct.
         """
         if name in self.keys():
-            raise KeyError(f"Input '{name}' existe déjà.")
+            raise KeyError(f"Input '{name}' already exists.")
         if not isinstance(name, str) or not isinstance(type_, type):
-            raise TypeError("Nom d'input ou type invalide.")
+            raise TypeError("Name or type is not valid.")
         target = self.required if required else self.optional
         target[name] = type_
 
     def remove_input(self, name: str) -> None:
         """
-        Supprime une définition d'input, qu'elle soit requise ou optionnelle.
+        Delete an input definition whenever it is required or optional.
         """
         if name in self.required:
             del self.required[name]
         elif name in self.optional:
             del self.optional[name]
         else:
-            raise KeyError(f"Input '{name}' n'existe pas.")
+            raise KeyError(f"Input '{name}' doesn't exist.")
 
     def validate(self, data: Dict[str, Any]) -> None:
         """
-        Valide un dictionnaire d'inputs contre les définitions de types.
-        Lève ValidationError en cas de manquant ou de type incorrect.
+        Validate an input dictionary against its type definition.
         """
         # Vérifier les requis
         for key, typ in self.required.items():
@@ -63,11 +64,11 @@ class NodeInputType:
                 raise ValidationError(f"Input requis manquant : '{key}'")
             if not isinstance(data[key], typ):
                 raise ValidationError(
-                    f"Input '{key}' attendu de type {typ.__name__}, reçu {type(data[key]).__name__}."
+                    f"Input '{key}' expected of type {typ.__name__}, received {type(data[key]).__name__}."
                 )
         # Vérifier les optionnels fournis
         for key, value in data.items():
             if key in self.optional and not isinstance(value, self.optional[key]):
                 raise ValidationError(
-                    f"Input optionnel '{key}' attendu de type {self.optional[key].__name__}, reçu {type(value).__name__}."
+                    f"Optional Input '{key}' expected of type {self.optional[key].__name__}, received {type(value).__name__}."
                 )
