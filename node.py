@@ -2,7 +2,7 @@ from typing import Callable, Dict, Any, Set, Optional
 from .types import NodeInputType
 from .errors import NodeConnectionError, NodeValidationError, NodeExecutionError
 from .api_clients import get_client
-from .logging import OrchestratorLogger
+from .logger import OrchestratorLogger
 
 class BaseNode:
     '''

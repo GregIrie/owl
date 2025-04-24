@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Set
 from .node import BaseNode
 from .errors import NodeConnectionError
-from .logging import OrchestratorLogger
+from .logger import OrchestratorLogger
 
 class Workflow:
     '''

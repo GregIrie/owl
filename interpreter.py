@@ -3,7 +3,7 @@ import threading
 import traceback
 from typing import Any, Dict
 from .errors import OrchestratorError
-from .logging import OrchestratorLogger
+from .logger import OrchestratorLogger
 
 SAFE_BUILTINS = {
     'abs': abs,

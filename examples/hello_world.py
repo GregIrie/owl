@@ -45,6 +45,7 @@ def build_wf(wf: Workflow):
     
 if __name__ == "__main__":
     wf = build_wf()
+    wf.pretty_print()
     results = wf.run({"text": "Bonjour le monde!"})
     print(results)
     # ➞ {"text": "Bonjour le monde!", "translation": "...", "word_count": 3}
