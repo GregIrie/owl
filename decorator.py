@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Callable, Dict, Any, Optional, List
 
-from .node import BaseNode
+from .node import BaseNode, LlmNode
 from .types import NodeInputType
 from .workflow import Workflow
 from .errors import NodeConnectionError
@@ -12,9 +12,7 @@ _nodes_registry: Dict[str, BaseNode] = {}
 def node(
     name: str,
     input_types: NodeInputType,
-    output_types: NodeInputType,
-    provider: Optional[str] = None,
-    model_name: Optional[str] = None
+    output_types: NodeInputType
 ) -> Callable[[Callable[..., Dict[str, Any]]], BaseNode]:
     """
     Decorator to declare a Node.
@@ -23,8 +21,6 @@ def node(
         name: unique node name
         input_types: NodeInputType for inputs
         output_types: NodeInputType for outputs
-        provider: LLM provider (openai, google, anthropic)
-        model_name: model name in the provider
     Returns a BaseNode instance registered under the given name.
     """
     def decorator(fn: Callable[..., Dict[str, Any]]) -> BaseNode:
@@ -35,13 +31,37 @@ def node(
             name=name,
             input_types=input_types,
             output_types=output_types,
-            run_fn=fn,
-            provider=provider,
-            model_name=model_name
+            run_fn=fn
         )
         _nodes_registry[name] = node_obj
         return node_obj
 
+    return decorator
+
+def llm_node(
+    name: str,
+    input_types: NodeInputType,
+    output_types: NodeInputType,
+    provider: str,
+    model_name: str,
+    **llm_options
+) -> Callable[[Callable[..., Dict[str, Any]]], LlmNode]:
+    """
+    Decorator to declare an LLM node with specific provider and model.
+    """
+    def decorator(fn: Callable[..., Dict[str, Any]]) -> LlmNode:
+        if name in _nodes_registry:
+            raise NodeConnectionError(f"Node '{name}' already declared.")
+        node_obj = LlmNode(
+            name=name,
+            input_types=input_types,
+            output_types=output_types,
+            provider=provider,
+            model_name=model_name,
+            **llm_options
+        )
+        _nodes_registry[name] = node_obj
+        return node_obj
     return decorator
 
 def workflow(name: str) -> Callable[[Callable[..., Any]], Callable[..., Workflow]]:
