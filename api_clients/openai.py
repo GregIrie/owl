@@ -1,5 +1,6 @@
 import os
-import openai
+from openai import OpenAI
+
 from .base_client import BaseClient
 
 class OpenAIClient(BaseClient):
@@ -8,12 +9,17 @@ class OpenAIClient(BaseClient):
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
             raise EnvironmentError('Variable OPENAI_API_KEY not defined')
-        self.client = openai.client(api_key)
+        self.client = OpenAI()
 
-    def generate(self, messages, **kwargs):
-        response = self.client.ChatCompletion.create(
+    def generate(self, message, **kwargs):
+        response = self.client.chat.completions.create(
             model=self.model_name,
-            messages=messages,
+            messages=[
+                {
+                    "role": "user",
+                    "content": message
+                }
+                ],           
             **kwargs
         )
         return response.choices[0].message.content
