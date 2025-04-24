@@ -15,47 +15,15 @@ class BaseNode:
         name: str,
         input_types: NodeInputType,
         output_types: NodeInputType,
-        run_fn: Optional[Callable[..., Dict[str, Any]]] = None,
-        provider: Optional[str] = None,
-        model_name: Optional[str] = None
+        run_fn: Callable[..., Dict[str, Any]]
     ):
         self.name = name
         self.input_types = input_types
         self.output_types = output_types
         self.logger = OrchestratorLogger.get_logger()
-
-        # Initialization using an LLM provider
-        if provider is not None:
-            if run_fn is not None:
-                raise ValueError('Do not provide run_fn when provider is specified.')
-            if model_name is None:
-                raise ValueError('model_name is required when provider is specified.')
-            self.client = get_client(provider, model_name)
-            output_keys = list(self.output_types.required.keys() or self.output_types.optional.keys())
-            if len(output_keys) != 1:
-                raise ValueError(
-                    f'For an LLM node with provider, exactly 1 output must be defined. Found: {output_keys}'
-                )
-            self._output_key = output_keys[0]
-
-            def _llm_run_fn(**inputs: Any) -> Dict[str, Any]:
-                messages = inputs.get('messages')
-                if messages is None:
-                    raise NodeValidationError(
-                        f'Node {self.name} expects "messages" to call the LLM'
-                    )
-                try:
-                    content = self.client.generate(messages=messages, **{k: v for k, v in inputs.items() if k != 'messages'})
-                except Exception as exc:
-                    self.logger.error(f'LLM error for {self.name}: {exc}')
-                    raise NodeExecutionError(f'LLM error for {self.name}: {exc}')
-                return {self._output_key: content}
-
-            self._run_fn = _llm_run_fn
-        else:
-            if run_fn is None:
-                raise ValueError('Either run_fn or provider must be specified.')
-            self._run_fn = run_fn
+        if run_fn is None:
+            raise ValueError('run_fn must be provided for BaseNode')
+        self._run_fn = run_fn
 
     def get_input_keys(self) -> Set[str]:
         return self.input_types.keys()
@@ -95,3 +63,42 @@ class BaseNode:
 
         self.logger.debug(f'Node {self.name} completed with outputs: {results}')
         return results
+
+class LlmNode(BaseNode):
+    """
+    Node implementation using LLM provider.
+    """
+    def __init__(
+        self,
+        name: str,
+        input_types: NodeInputType,
+        output_types: NodeInputType,
+        provider: str,
+        model_name: str
+    ):
+        self.logger = OrchestratorLogger.get_logger()
+        client = get_client(provider, model_name)
+        output_keys = list(output_types.required.keys() or output_types.optional.keys())
+        if len(output_keys) != 1:
+            raise ValueError(
+                f'For an LLM node with provider, exactly 1 output must be defined. Found: {output_keys}'
+            )
+        self._output_key = output_keys[0]
+
+        def llm_run_fn(**inputs: Any) -> Dict[str, Any]:
+            messages = inputs.get('messages')
+            if messages is None:
+                raise NodeValidationError(
+                    f'Node {name} expects "messages" to call the LLM'
+                )
+            try:
+                content = client.generate(
+                    messages=messages,
+                    **{k: v for k, v in inputs.items() if k != 'messages'}
+                )
+            except Exception as exc:
+                self.logger.error(f'LLM error for {name}: {exc}')
+                raise NodeExecutionError(f'LLM error for {name}: {exc}')
+            return {self._output_key: content}
+
+        super().__init__(name, input_types, output_types, run_fn=llm_run_fn)
