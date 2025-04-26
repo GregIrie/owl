@@ -2,7 +2,7 @@ from functools import wraps
 from typing import Callable, Dict, Any, Optional, List
 
 from .node import BaseNode, LlmNode
-from .types import NodeInputType
+from .core_type import NodeInputType
 from .workflow import Workflow
 from .errors import NodeConnectionError
 
